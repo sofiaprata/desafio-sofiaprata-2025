@@ -8,117 +8,105 @@ const ANIMAIS = {
   Loco: { tipo: 'jabuti', brinquedos: ['SKATE', 'RATO'] },
 };
 
-const BRINQUEDOS_VALIDOS = new Set(['RATO', 'BOLA', 'NOVELO', 'LASER', 'CAIXA', 'SKATE']);
+const BRINQUEDOS_VALIDOS = ['RATO', 'BOLA', 'NOVELO', 'LASER', 'CAIXA', 'SKATE'];
 
 class AbrigoAnimais {
-  encontraPessoas(brinquedos1, brinquedos2, ordemAnimais) {
-    const pessoa1 = brinquedos1.split(',').map(b => b.trim());
-    const pessoa2 = brinquedos2.split(',').map(b => b.trim());
-    const ordem = ordemAnimais.split(',').map(a => a.trim());
+  encontraPessoas(brinq1, brinq2, ordemStr) {
+    const pessoa1 = brinq1.split(',').map(x => x.trim());
+    const pessoa2 = brinq2.split(',').map(x => x.trim());
+    const ordem = ordemStr.split(',').map(x => x.trim());
 
     if (!this.validarBrinquedos(pessoa1) || !this.validarBrinquedos(pessoa2)) {
       return { erro: 'Brinquedo inválido' };
     }
+
     if (!this.validarAnimais(ordem)) {
       return { erro: 'Animal inválido' };
     }
 
-    let adotadosPessoa1 = 0;
-    let adotadosPessoa2 = 0;
-    const resultados = [];
-    const abrigoTemporario = new Set();
+    let adotados1 = 0;
+    let adotados2 = 0;
+    const resultado = [];
 
-    for (const nomeAnimal of ordem) {
-      const animal = ANIMAIS[nomeAnimal];
-      if (!animal) continue;
+    for (let nome of ordem) {
+      const animal = ANIMAIS[nome];
 
-      if (nomeAnimal === 'Loco') {
-        resultados.push({ nome: nomeAnimal, status: 'abrigo' });
-        abrigoTemporario.add(nomeAnimal);
+      if (nome === 'Loco') {
+        resultado.push({ nome, status: 'abrigo' });
         continue;
       }
 
-      const podePessoa1 = this.temTodosBrinquedosNaOrdem(pessoa1, animal.brinquedos);
-      const podePessoa2 = this.temTodosBrinquedosNaOrdem(pessoa2, animal.brinquedos);
+      const pode1 = this.temBrinquedos(pessoa1, animal.brinquedos);
+      const pode2 = this.temBrinquedos(pessoa2, animal.brinquedos);
 
-      if (animal.tipo === 'gato' && podePessoa1 && podePessoa2) {
-        resultados.push({ nome: nomeAnimal, status: 'abrigo' });
-        abrigoTemporario.add(nomeAnimal);
-        continue;
-      }
-
-      if (podePessoa1 && podePessoa2 && animal.tipo !== 'gato') {
-        resultados.push({ nome: nomeAnimal, status: 'abrigo' });
-        abrigoTemporario.add(nomeAnimal);
-        continue;
-      }
-
-      if (podePessoa1 && adotadosPessoa1 < 3) {
-        resultados.push({ nome: nomeAnimal, status: 'pessoa 1' });
-        adotadosPessoa1++;
-      } else if (podePessoa2 && adotadosPessoa2 < 3) {
-        resultados.push({ nome: nomeAnimal, status: 'pessoa 2' });
-        adotadosPessoa2++;
+      if (animal.tipo === 'gato' && pode1 && pode2) {
+        resultado.push({ nome, status: 'abrigo' });
+      } else if (pode1 && pode2) {
+        resultado.push({ nome, status: 'abrigo' });
+      } else if (pode1 && adotados1 < 3) {
+        resultado.push({ nome, status: 'pessoa 1' });
+        adotados1++;
+      } else if (pode2 && adotados2 < 3) {
+        resultado.push({ nome, status: 'pessoa 2' });
+        adotados2++;
       } else {
-        resultados.push({ nome: nomeAnimal, status: 'abrigo' });
-        abrigoTemporario.add(nomeAnimal);
+        resultado.push({ nome, status: 'abrigo' });
       }
     }
 
-    if (abrigoTemporario.has('Loco')) {
-      const idx = resultados.findIndex(r => r.nome === 'Loco');
-      const companhia = ordem.filter(nome => nome !== 'Loco');
+    const locoIndex = resultado.findIndex(x => x.nome === 'Loco');
+    if (locoIndex !== -1 && ordem.length > 1) {
+      const pode1 = this.temBrinquedos(pessoa1, ANIMAIS.Loco.brinquedos, true);
+      const pode2 = this.temBrinquedos(pessoa2, ANIMAIS.Loco.brinquedos, true);
 
-      if (companhia.length > 0) {
-        if (this.temTodosBrinquedosNaOrdem(pessoa2, ANIMAIS['Loco'].brinquedos) && adotadosPessoa2 < 3) {
-          resultados[idx].status = 'pessoa 2';
-          adotadosPessoa2++;
-          abrigoTemporario.delete('Loco');
-        } else if (this.temTodosBrinquedosNaOrdem(pessoa1, ANIMAIS['Loco'].brinquedos) && adotadosPessoa1 < 3) {
-          resultados[idx].status = 'pessoa 1';
-          adotadosPessoa1++;
-          abrigoTemporario.delete('Loco');
-        }
+      if (pode2 && adotados2 < 3) {
+        resultado[locoIndex].status = 'pessoa 2';
+        adotados2++;
+      } else if (pode1 && adotados1 < 3) {
+        resultado[locoIndex].status = 'pessoa 1';
+        adotados1++;
       }
     }
 
-    resultados.sort((a, b) => a.nome.localeCompare(b.nome));
-    const lista = resultados.map(({ nome, status }) => `${nome} - ${status}`);
+    resultado.sort((a, b) => a.nome.localeCompare(b.nome));
+    const lista = resultado.map(x => `${x.nome} - ${x.status}`);
 
     return { lista, erro: false };
   }
 
   validarBrinquedos(lista) {
-    const vistos = new Set();
-    for (const brinquedo of lista) {
-      if (!BRINQUEDOS_VALIDOS.has(brinquedo)) return false;
-      if (vistos.has(brinquedo)) return false;
-      vistos.add(brinquedo);
+    const set = new Set();
+    for (let b of lista) {
+      if (!BRINQUEDOS_VALIDOS.includes(b) || set.has(b)) return false;
+      set.add(b);
     }
     return true;
   }
 
   validarAnimais(lista) {
-    const vistos = new Set();
-    for (const nome of lista) {
-      if (!ANIMAIS[nome]) return false;
-      if (vistos.has(nome)) return false;
-      vistos.add(nome);
+    const set = new Set();
+    for (let nome of lista) {
+      if (!ANIMAIS[nome] || set.has(nome)) return false;
+      set.add(nome);
     }
     return true;
   }
 
-  temTodosBrinquedosNaOrdem(brinquedosPessoa, brinquedosAnimal) {
-    let idxPessoa = 0;
-    for (const bAnimal of brinquedosAnimal) {
+  temBrinquedos(lista, brinquedosNecessarios, ignorarOrdem = false) {
+    if (ignorarOrdem) {
+      return brinquedosNecessarios.every(b => lista.includes(b));
+    }
+
+    let idx = 0;
+    for (let b of brinquedosNecessarios) {
       let achou = false;
-      while (idxPessoa < brinquedosPessoa.length) {
-        if (brinquedosPessoa[idxPessoa] === bAnimal) {
+      while (idx < lista.length) {
+        if (lista[idx] === b) {
           achou = true;
-          idxPessoa++;
+          idx++;
           break;
         }
-        idxPessoa++;
+        idx++;
       }
       if (!achou) return false;
     }

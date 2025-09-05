@@ -1,37 +1,38 @@
 import { AbrigoAnimais } from './abrigo-animais.js';
 
+describe('Testes de precaução no abrigo', () => {
 
-describe('Abrigo de Animais - Testes de Precaução', () => {
-  
-  test('Deve rejeitar brinquedos repetidos na lista da pessoa 1', () => {
-    const resultado = new AbrigoAnimais().encontraPessoas(
+  test('Não pode ter brinquedo repetido na lista da primeira pessoa', () => {
+    const res = new AbrigoAnimais().encontraPessoas(
       'RATO,RATO,BOLA', 'RATO,NOVELO', 'Rex,Fofo'
     );
-    expect(resultado.erro).toBe('Brinquedo inválido');
-    expect(resultado.lista).toBeFalsy();
+
+    expect(res.erro).toBe('Brinquedo inválido');
+    expect(res.lista).toBeFalsy();
   });
 
-  test('Deve rejeitar animais duplicados na ordem dos animais', () => {
-    const resultado = new AbrigoAnimais().encontraPessoas(
+  test('Não pode repetir animal na ordem', () => {
+    const res = new AbrigoAnimais().encontraPessoas(
       'RATO,BOLA', 'RATO,NOVELO', 'Rex,Fofo,Rex'
     );
-    expect(resultado.erro).toBe('Animal inválido');
-    expect(resultado.lista).toBeFalsy();
+
+    expect(res.erro).toBe('Animal inválido');
+    expect(res.lista).toBeFalsy();
   });
 
-  test('Loco deve ir para pessoa 1 ou 2 somente se tiver companhia, senão fica no abrigo', () => {
-    const resultado1 = new AbrigoAnimais().encontraPessoas(
+  test('Loco só vai pra alguém se tiver outro animal junto', () => {
+    const semCompanhia = new AbrigoAnimais().encontraPessoas(
       'SKATE,RATO', 'RATO,BOLA', 'Loco'
     );
-    expect(resultado1.lista).toContain('Loco - abrigo');
 
-    const resultado2 = new AbrigoAnimais().encontraPessoas(
+    expect(semCompanhia.lista).toContain('Loco - abrigo');
+
+    const comOutro = new AbrigoAnimais().encontraPessoas(
       'SKATE,RATO', 'RATO,BOLA', 'Loco,Rex'
     );
 
-    expect(
-      resultado2.lista.some(item => item.startsWith('Loco - pessoa'))
-    ).toBe(true);
+    const locoAdotado = comOutro.lista.find(x => x.startsWith('Loco - pessoa'));
+    expect(locoAdotado).toBeTruthy();
   });
 
 });
